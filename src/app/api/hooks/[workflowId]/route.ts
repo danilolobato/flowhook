@@ -138,3 +138,17 @@ export async function PUT(request: Request, context: RouteContext): Promise<Next
 export async function PATCH(request: Request, context: RouteContext): Promise<NextResponse> {
   return handleIngest(request, context, "PATCH");
 }
+
+export async function GET(_request: Request, context: RouteContext): Promise<NextResponse> {
+  const { workflowId } = await context.params;
+
+  return NextResponse.json(
+    {
+      ok: true,
+      workflowId,
+      message:
+        "Esta es la URL de entrada de una automatización. Para registrar un evento real, envía una petición POST, PUT o PATCH con un cuerpo JSON — visitarla en el navegador no cuenta como un evento.",
+    },
+    { status: 200 },
+  );
+}
