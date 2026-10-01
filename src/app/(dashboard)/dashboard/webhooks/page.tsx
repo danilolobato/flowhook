@@ -11,6 +11,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
+import { useSession } from "@clerk/nextjs";
 import { useSupabaseClient } from "@/lib/supabase/client";
 import { rowToWebhookEvent } from "@/lib/supabase/mappers";
 import type { Database } from "@/lib/supabase/database.types";
@@ -38,6 +39,7 @@ const FILTERS: readonly { readonly value: StatusFilter; readonly label: string }
 
 export default function WebhooksPage(): React.JSX.Element {
   const supabase = useSupabaseClient();
+  const { isLoaded: isSessionLoaded } = useSession();
   const [events, setEvents] = useState<readonly WebhookEvent[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -51,6 +53,7 @@ export default function WebhooksPage(): React.JSX.Element {
   // Carga inicial: nombres de las automatizaciones (para mostrarlos en la
   // tabla sin tener que hacer un join) y los últimos 100 eventos.
   useEffect(() => {
+    if (!isSessionLoaded) return;
     let cancelled = false;
 
     async function load(): Promise<void> {
@@ -92,13 +95,13 @@ export default function WebhooksPage(): React.JSX.Element {
     return () => {
       cancelled = true;
     };
-  }, [supabase]);
+  }, [supabase, isSessionLoaded]);
 
   // Tiempo real: nuevos eventos entran arriba de la tabla; los que cambian
   // de estado (p. ej. de "pendiente" a "fallido" tras un reintento) se
   // actualizan en el sitio. Se desconecta cuando el usuario pausa "en vivo".
   useEffect(() => {
-    if (!isLive) return;
+    if (!isLive || !isSessionLoaded) return;
 
     const channel = supabase
       .channel("webhook_events-changes")
@@ -128,7 +131,7 @@ export default function WebhooksPage(): React.JSX.Element {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [supabase, isLive]);
+  }, [supabase, isLive, isSessionLoaded]);
 
   const counts = useMemo<Record<StatusFilter, number>>(() => {
     return {
